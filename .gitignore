@@ -1,0 +1,24 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# Secrets and user data — NEVER in repo
+.env
+.env.*
+!.env.example
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Chrome profile (cookies, session data)
+chrome-profile/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "crates/forge-linkedin",
+    "crates/linkedin-ops",
+    "crates/filter",
+    "crates/rate-limit",
+    "crates/store",
+    "crates/jobs-ops",
+]
+resolver = "2"
