@@ -1,6 +1,9 @@
 [package]
 name = "linkedin-ops"
 version = "0.1.0"
+description = "LinkedIn browser automation ops for forge-linkedin"
+repository = "https://github.com/sbknext/forge-linkedin"
+homepage = "https://forge.sbknext.com"
 edition = "2021"
 license = "MIT"
 
@@ -15,6 +18,6 @@ tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.8"
 url = "2"
-store = { path = "../store" }
-filter = { path = "../filter" }
-rate-limit = { path = "../rate-limit" }
+store = { path = "../store", version = "0.1.0" }
+filter = { path = "../filter", version = "0.1.0" }
+rate-limit = { path = "../rate-limit", version = "0.1.0" }

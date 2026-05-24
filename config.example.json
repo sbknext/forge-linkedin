@@ -1,0 +1,11 @@
+{
+  "hashtags": ["#AgenticAI", "#AIEngineering", "#SelfImprovingAI", "#LLM", "#AITooling"],
+  "daily_cap": 30,
+  "min_delay_sec": 90,
+  "max_delay_sec": 300,
+  "active_hours": [9, 21],
+  "active_tz": "Asia/Kolkata",
+  "skip_weekends": false,
+  "min_engagement": 10,
+  "skip_keywords": ["hiring", "recruiter", "career opportunity"]
+}

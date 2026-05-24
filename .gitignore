@@ -2,7 +2,9 @@
 /target/
 **/*.rs.bk
 
-# Secrets and user data — NEVER in repo
+# Cargo.lock is kept — binary crate, reproducible builds. Do NOT add Cargo.lock here.
+
+# Secrets — never commit
 .env
 .env.*
 !.env.example
@@ -12,13 +14,25 @@
 *.db-shm
 *.db-wal
 
-# Chrome profile (cookies, session data)
+# Chrome / Chromium profile (contains session cookies)
 chrome-profile/
 
 # Logs
 *.log
 logs/
 
-# OS
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
 Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Backup / temp
+*.bak
+*.tmp

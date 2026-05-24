@@ -2,8 +2,13 @@
 name = "forge-linkedin"
 version = "0.1.0"
 edition = "2021"
+description = "Safe-pace LinkedIn engagement automation. 30 likes/day max via real Chrome session."
 license = "MIT"
 repository = "https://github.com/sbknext/forge-linkedin"
+homepage = "https://forge.sbknext.com"
+keywords = ["linkedin", "automation", "cli", "forge", "chrome"]
+categories = ["command-line-utilities"]
+readme = "../../README.md"
 
 [[bin]]
 name = "forge-linkedin"
@@ -20,11 +25,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
 directories = "5"
 chrono = { version = "0.4", features = ["serde"] }
-linkedin-ops = { path = "../linkedin-ops" }
-store = { path = "../store" }
-rate-limit = { path = "../rate-limit" }
-filter = { path = "../filter" }
-jobs-ops = { path = "../jobs-ops" }
+linkedin-ops = { path = "../linkedin-ops", version = "0.1.0" }
+store = { path = "../store", version = "0.1.0" }
+rate-limit = { path = "../rate-limit", version = "0.1.0" }
+filter = { path = "../filter", version = "0.1.0" }
+jobs-ops = { path = "../jobs-ops", version = "0.1.0" }
 
 [dev-dependencies]
 assert_cmd = "2"
