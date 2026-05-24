@@ -2,8 +2,28 @@ import type { Page } from 'playwright';
 import type { PostCandidate } from '../types.js';
 import { isCaptchaPage, CaptchaError } from './captcha.js';
 
-const POST_SELECTOR = '.feed-shared-update-v2, [data-urn^="urn:li:activity:"]';
-const POST_TIMEOUT = 15000;
+// Reaction button aria-label contains this substring for both liked and unliked states
+const REACTION_BTN_ATTR = 'eaction button state';
+
+export function buildHashtagUrl(tag: string): string {
+  const clean = tag.replace(/^#/, '');
+  return `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent('#' + clean)}&origin=FACETED_SEARCH&sortBy=%22date_posted%22`;
+}
+
+/**
+ * Derive a stable synthetic post ID from listitem innerText.
+ * Format: "Feed post | NAME |  • 2nd | TITLE | TIME • | Follow | BODY..."
+ * We normalise whitespace, take author + first 120 chars of body.
+ */
+export function derivePostId(rawText: string): string {
+  const normalised = rawText.replace(/\n+/g, ' | ').trim();
+  const parts = normalised.split('|').map(s => s.trim());
+  const author = parts[1] ?? 'unknown';
+  // body starts after the first ~5 pipe segments (header metadata)
+  const body = parts.slice(5).join(' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+  const key = `${author}::${body || normalised.slice(0, 80)}`.replace(/\s+/g, ' ');
+  return key.slice(0, 200);
+}
 
 export async function searchHashtag(
   page: Page,
@@ -11,7 +31,7 @@ export async function searchHashtag(
   maxPosts = 20
 ): Promise<PostCandidate[]> {
   const tag = hashtag.replace(/^#/, '');
-  const url = `https://www.linkedin.com/feed/hashtag/${encodeURIComponent(tag)}/`;
+  const url = buildHashtagUrl(tag);
 
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
 
@@ -19,102 +39,82 @@ export async function searchHashtag(
     throw new CaptchaError(page.url());
   }
 
+  // Wait for at least one reaction button to appear
   try {
-    await page.waitForSelector(POST_SELECTOR, { timeout: POST_TIMEOUT });
+    await page.waitForSelector(`button[aria-label*="${REACTION_BTN_ATTR}"]`, { timeout: 20000 });
   } catch {
-    console.warn(`No posts found for #${tag} (selector timeout)`);
+    console.warn(`No posts found for #${tag} (reaction-button timeout)`);
     return [];
   }
 
-  // Scroll a bit to load more posts
-  await page.evaluate(() => window.scrollBy(0, 800));
-  await page.waitForTimeout(1500);
+  // Scroll twice to load more posts
+  await page.mouse.wheel(0, 1500);
+  await page.waitForTimeout(2000);
+  await page.mouse.wheel(0, 1500);
+  await page.waitForTimeout(2000);
 
-  const posts = await page.$$eval(
-    POST_SELECTOR,
-    (elements, [tagName, limit]) => {
+  const raw = await page.evaluate(
+    ({ reactionAttr, limit }: { reactionAttr: string; limit: number }) => {
+      const items = document.querySelectorAll('[role="listitem"]');
       const results: Array<{
-        postId: string;
+        post_id: string;
         author: string;
-        authorUrn: string;
-        url: string;
-        engagement: number;
+        body: string;
         alreadyLiked: boolean;
-        text: string;
+        engagement: number;
       }> = [];
 
-      for (const el of elements.slice(0, limit as number)) {
-        try {
-          // Post URN / ID
-          const urn = el.getAttribute('data-urn') ?? '';
-          const activityMatch = urn.match(/urn:li:activity:(\d+)/);
-          if (!activityMatch) continue;
-          const postId = activityMatch[1];
+      for (let idx = 0; idx < items.length && results.length < limit; idx++) {
+        const li = items[idx] as HTMLElement;
+        const reactBtn = li.querySelector(
+          `button[aria-label*="${reactionAttr}"]`
+        ) as HTMLButtonElement | null;
+        if (!reactBtn) continue;
 
-          // Post URL
-          const postUrl = `https://www.linkedin.com/feed/update/${urn}/`;
+        const ariaLabel = reactBtn.getAttribute('aria-label') ?? '';
+        const alreadyLiked = !ariaLabel.toLowerCase().includes('no reaction');
 
-          // Author
-          const authorEl =
-            el.querySelector('.update-components-actor__name') ??
-            el.querySelector('.feed-shared-actor__name') ??
-            el.querySelector('[data-test-app-aware-link]');
-          const author = authorEl?.textContent?.trim() ?? 'Unknown';
+        // innerText gives the full rendered text of the card
+        const raw = li.innerText.replace(/\n+/g, ' | ').trim();
+        const parts = raw.split('|').map((s: string) => s.trim());
+        const author = parts[1] ?? 'unknown';
+        const body = parts
+          .slice(5)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 200);
 
-          // Author URN from profile link
-          const profileLinkEl = el.querySelector(
-            '.update-components-actor__meta a, .feed-shared-actor__container-link'
-          );
-          const profileHref = profileLinkEl?.getAttribute('href') ?? '';
-          const authorUrnMatch = profileHref.match(/\/in\/([^/?]+)/);
-          const authorUrn = authorUrnMatch ? authorUrnMatch[1] : '';
+        const post_id = `${author}::${(body || raw.slice(0, 80)).replace(/\s+/g, ' ')}`.slice(0, 200);
 
-          // Engagement count
-          const engagementEl =
-            el.querySelector('.social-counts-reactions__count') ??
-            el.querySelector('[data-test-reactions-count-see-more-btn]') ??
-            el.querySelector('.social-details-social-counts__reactions-count');
-          let engagement = 0;
-          if (engagementEl) {
-            const text = engagementEl.textContent?.trim() ?? '0';
-            const numMatch = text.replace(/,/g, '').match(/\d+/);
-            if (numMatch) engagement = parseInt(numMatch[0], 10);
-          }
-
-          // Already liked
-          const likeBtn =
-            el.querySelector('button[aria-label*="React Like"]') ??
-            el.querySelector('button[aria-label*="Like"]') ??
-            el.querySelector('.reactions-react-button');
-          const alreadyLiked =
-            likeBtn?.getAttribute('aria-pressed') === 'true' ||
-            likeBtn?.classList.contains('artdeco-button--active') ||
-            false;
-
-          // Post text (for keyword filtering)
-          const textEl =
-            el.querySelector('.feed-shared-update-v2__description') ??
-            el.querySelector('.feed-shared-text') ??
-            el.querySelector('[data-test-id="main-feed-activity-card__commentary"]');
-          const text = textEl?.textContent?.trim() ?? '';
-
-          results.push({
-            postId,
-            author,
-            authorUrn,
-            url: postUrl,
-            engagement,
-            alreadyLiked,
-            text,
-          });
-        } catch {
-          // skip malformed post
+        // Try to extract engagement count (reactions)
+        const reactionsEl = li.querySelector(
+          'button[aria-label*="View reactions"], [aria-label*="reaction"]'
+        ) as HTMLElement | null;
+        let engagement = 0;
+        if (reactionsEl) {
+          const m = (reactionsEl.getAttribute('aria-label') ?? reactionsEl.innerText)
+            .replace(/,/g, '')
+            .match(/(\d+)/);
+          if (m) engagement = parseInt(m[1], 10);
         }
+
+        results.push({ post_id, author, body, alreadyLiked, engagement });
       }
+
       return results;
     },
-    [tag, maxPosts] as [string, number]
+    { reactionAttr: REACTION_BTN_ATTR, limit: maxPosts }
   );
 
-  return posts.map(p => ({ ...p, hashtag: `#${tag}` }));
+  return raw.map(p => ({
+    postId: p.post_id,
+    author: p.author,
+    authorUrn: '',
+    url: '',          // no reliable URN — liking happens in same page session
+    hashtag: `#${tag}`,
+    engagement: p.engagement,
+    alreadyLiked: p.alreadyLiked,
+    text: p.body,
+  }));
 }

@@ -25,9 +25,27 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [0.2.1] — 2026-05-24
 
-_(nothing yet)_
+### Fixed
+
+- **LinkedIn DOM selectors**: hashtag feed (`/feed/hashtag/X/`) is dead — LinkedIn redirects it to global search. All queries now go to `search/results/content/?keywords=%23TAG&origin=FACETED_SEARCH&sortBy=%22date_posted%22`.
+- **Post detection**: replaced obfuscated class selectors with `[role="listitem"]:has(button[aria-label*="eaction button state"])` — stable across class-name churn.
+- **Like detection**: `button[aria-label*="eaction button state"]` — aria-label contains "no reaction" when unliked, anything else means already liked.
+- **Post ID**: no clean URN available on search results page. Synthetic stable ID derived from `author::body[:120]` replaces activity URN for dedup.
+- **Engagement**: best-effort parse from `aria-label` on reactions button; filter bypasses `min_engagement` when count is unknown (0) to avoid false skips.
+- **Like flow**: likes now happen in-place on the search-results page (no per-post navigation) — faster and more reliable.
+- **Auth check**: `isLoggedIn` now prioritises `input.search-global-typeahead__input` and `nav[aria-label="Primary Navigation"]` over obfuscated class selectors.
+
+### Added
+
+- `tests/search.test.ts` — unit tests for `buildHashtagUrl` and `derivePostId`.
+- Synthetic post_id dedup tests in `tests/db.test.ts`.
+- Updated `tests/captcha.test.ts` to verify new search URL is not mis-flagged as captcha.
+
+### Removed
+
+- `debug-dom.mjs` added to `.gitignore` (one-time probe, not part of product).
 
 ---
 

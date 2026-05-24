@@ -18,7 +18,8 @@ describe('captchaUrlPatterns', () => {
   const safeUrls = [
     'https://www.linkedin.com/feed/',
     'https://www.linkedin.com/in/johndoe/',
-    'https://www.linkedin.com/feed/hashtag/agentic-ai/',
+    // New search URL replaces the deprecated hashtag feed — must NOT be flagged as captcha
+    'https://www.linkedin.com/search/results/content/?keywords=%23agentic-ai&origin=FACETED_SEARCH&sortBy=%22date_posted%22',
     'https://www.linkedin.com/feed/update/urn:li:activity:12345/',
   ];
 

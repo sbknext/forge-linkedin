@@ -35,3 +35,6 @@ Thumbs.db
 # Backup / temp
 *.bak
 *.tmp
+
+# One-time DOM probe — not part of product
+debug-dom.mjs

@@ -7,11 +7,15 @@ import { stdin as input, stdout as output } from 'node:process';
 const FEED_URL = 'https://www.linkedin.com/feed/';
 const LOGIN_URL = 'https://www.linkedin.com/login';
 
-// Selector for LinkedIn's global nav (present only when logged in)
+// Stable selectors present only when logged in.
+// Prefer attribute/role selectors that survive LinkedIn's class-name obfuscation.
 const LOGGED_IN_SELECTORS = [
+  // Search typeahead input — present in every authenticated page
+  'input.search-global-typeahead__input',
+  // Global nav landmark — stable role+label
+  'nav[aria-label="Primary Navigation"]',
+  // Fallback: older class-based nav still seen on some accounts
   '[data-test-global-nav]',
-  '.global-nav',
-  '.feed-identity-module',
   'nav[aria-label]',
 ];
 

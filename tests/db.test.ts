@@ -132,3 +132,41 @@ describe('recordSkip', () => {
     }).not.toThrow();
   });
 });
+
+describe('synthetic post_id dedup (v0.2.1 search URL migration)', () => {
+  it('deduplicates by synthetic id — second like is idempotent', () => {
+    const syntheticId = 'John Doe::This is a post about AI and automation that we saw before';
+    const post: PostCandidate = {
+      postId: syntheticId,
+      author: 'John Doe',
+      authorUrn: '',
+      url: '',
+      hashtag: '#AI',
+      engagement: 0,
+      alreadyLiked: false,
+    };
+
+    expect(wasLiked(db, syntheticId)).toBe(false);
+    recordLike(db, post);
+    expect(wasLiked(db, syntheticId)).toBe(true);
+
+    // Second call must not throw (INSERT OR IGNORE)
+    expect(() => recordLike(db, post)).not.toThrow();
+    expect(wasLiked(db, syntheticId)).toBe(true);
+  });
+
+  it('two posts with different bodies get different IDs', () => {
+    const id1 = 'Alice::Post about machine learning';
+    const id2 = 'Alice::Post about supply chain';
+
+    const post1: PostCandidate = { postId: id1, author: 'Alice', authorUrn: '', url: '', hashtag: '#AI', engagement: 0, alreadyLiked: false };
+    const post2: PostCandidate = { postId: id2, author: 'Alice', authorUrn: '', url: '', hashtag: '#AI', engagement: 0, alreadyLiked: false };
+
+    recordLike(db, post1);
+    expect(wasLiked(db, id1)).toBe(true);
+    expect(wasLiked(db, id2)).toBe(false);
+
+    recordLike(db, post2);
+    expect(wasLiked(db, id2)).toBe(true);
+  });
+});
