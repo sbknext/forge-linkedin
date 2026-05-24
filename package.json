@@ -1,0 +1,37 @@
+{
+  "name": "forge-linkedin",
+  "version": "0.2.0",
+  "description": "Safe-pace LinkedIn engagement for solo devs. 30 likes/day max, real-browser session, zero passwords in code.",
+  "type": "module",
+  "bin": {
+    "forge-linkedin": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "playwright": "^1.46.0",
+    "commander": "^12.1.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.4.0",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/better-sqlite3": "^7.6.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sbknext/forge-linkedin"
+  },
+  "license": "MIT"
+}

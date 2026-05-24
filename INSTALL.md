@@ -1,29 +1,26 @@
 # forge-linkedin — Install Guide
 
-Not published to crates.io. Build from source — it's one command after the clone.
-
 ---
 
 ## 1. Prerequisites
 
 | Requirement | Minimum version | Check |
 |---|---|---|
-| **Rust toolchain** | 1.75 | `rustc --version` |
-| **Cargo** | ships with Rust | `cargo --version` |
-| **Chrome or Chromium** | any recent stable | `google-chrome --version` or `chromium --version` |
+| **Node.js** | 20+ | `node --version` |
+| **npm** | ships with Node | `npm --version` |
 | **OS** | Linux (x86_64, aarch64) or macOS (Intel/Apple Silicon) | — |
-| **OpenSSL dev headers** | any current | `pkg-config --libs openssl` |
 
-On Debian/Ubuntu, grab OpenSSL headers with:
+On macOS, install Node via [nvm](https://github.com/nvm-sh/nvm) or Homebrew:
 
 ```bash
-sudo apt-get install -y pkg-config libssl-dev
+brew install node
 ```
 
-On macOS with Homebrew:
+On Debian/Ubuntu:
 
 ```bash
-brew install openssl
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 ```
 
 ---
@@ -35,15 +32,13 @@ curl -fsSL https://raw.githubusercontent.com/sbknext/forge-linkedin/main/scripts
 ```
 
 The script:
-- Detects macOS or Linux
-- Installs Rust via `rustup` if not found (prompts before doing so)
 - Clones the repo to `~/.forge-linkedin/repo/` (or pulls latest if already cloned)
-- Builds the release binary
-- Symlinks the binary to `~/.cargo/bin/forge-linkedin` (falls back to `/usr/local/bin/` if writable)
+- Runs `npm install && npm run build`
+- Installs Playwright Chromium (`npx playwright install chromium`)
+- Symlinks the binary to `~/.local/bin/forge-linkedin`
 - Runs `forge-linkedin init` to scaffold `~/.forge-linkedin/`
-- Prints next steps
 
-Safe to re-run — the script is idempotent.
+Safe to re-run — idempotent.
 
 ---
 
@@ -52,20 +47,22 @@ Safe to re-run — the script is idempotent.
 ```bash
 git clone https://github.com/sbknext/forge-linkedin
 cd forge-linkedin
-cargo build --release
+npm install
+npm run build
+npx playwright install chromium
 ```
 
-The binary lands at `./target/release/forge-linkedin`. Either run it directly or symlink it into your PATH:
+Then either run directly:
 
 ```bash
-ln -sf "$PWD/target/release/forge-linkedin" "$HOME/.cargo/bin/forge-linkedin"
+node dist/cli.js init
+```
+
+Or link globally:
+
+```bash
+npm link     # makes `forge-linkedin` available in PATH
 forge-linkedin init
-```
-
-Make sure `~/.cargo/bin` is in your `PATH`:
-
-```bash
-export PATH="$HOME/.cargo/bin:$PATH"   # add to ~/.bashrc or ~/.zshrc
 ```
 
 ---
@@ -84,8 +81,8 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-- `LINKEDIN_USERNAME` / `LINKEDIN_PASSWORD` — only used by the optional unattended login flow (see step 5). Leave blank if you prefer the manual browser flow.
-- `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — optional. Fill these if you want captcha alerts and daily digests via Telegram.
+- `LINKEDIN_USERNAME` / `LINKEDIN_PASSWORD` — only used by the optional unattended login flow. Leave blank to use the manual browser flow (recommended).
+- `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — optional. Fill for captcha alerts and daily digests.
 - File is created with mode `0600`. Never commit it.
 
 ### `~/.forge-linkedin/config.json`
@@ -104,7 +101,7 @@ TELEGRAM_CHAT_ID=
 }
 ```
 
-See [`config.example.json`](config.example.json) for full field descriptions, or run `forge-linkedin config` after setup.
+Run `forge-linkedin config` to view current values with descriptions.
 
 ---
 
@@ -116,11 +113,11 @@ See [`config.example.json`](config.example.json) for full field descriptions, or
 forge-linkedin login
 ```
 
-This opens your configured Chrome/Chromium profile. Log in to LinkedIn normally. When the LinkedIn feed is visible, close the browser — the session cookie is persisted to `~/.forge-linkedin/chrome-profile/` and will be reused on subsequent runs.
+Opens Chromium. Log in to LinkedIn normally. Session is persisted to `~/.forge-linkedin/chrome-profile/` and reused on subsequent runs.
 
 ### .env credentials flow (unattended)
 
-If `LINKEDIN_USERNAME` and `LINKEDIN_PASSWORD` are set in `~/.forge-linkedin/.env`, `forge-linkedin login` will attempt to fill the login form automatically. The browser still opens visibly (not headless). You must still confirm the login if LinkedIn triggers a verification step.
+If `LINKEDIN_USERNAME` and `LINKEDIN_PASSWORD` are set in `~/.forge-linkedin/.env`, `forge-linkedin login` will attempt to fill the login form automatically. The browser still opens visibly. You must still confirm any 2FA/verification LinkedIn requests.
 
 ---
 
@@ -130,61 +127,21 @@ If `LINKEDIN_USERNAME` and `LINKEDIN_PASSWORD` are set in `~/.forge-linkedin/.en
 forge-linkedin status
 ```
 
-Expected output on a fresh install (no runs yet):
+Expected output on a fresh install:
 
 ```
-forge-linkedin v0.1.1
-────────────────────
+forge-linkedin v0.2.0
+────────────────────────────────
 Today's likes : 0 / 30
-Last login    : <timestamp>
+Last login    : never
 Last run      : never
-Recent likes  : (none)
+
+Recent likes: (none)
 ```
 
 ---
 
 ## 7. Schedule recurring runs
-
-### Linux — systemd timer
-
-Create `~/.config/systemd/user/forge-linkedin.service`:
-
-```ini
-[Unit]
-Description=forge-linkedin daily like run
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/forge-linkedin run
-```
-
-Create `~/.config/systemd/user/forge-linkedin.timer`:
-
-```ini
-[Unit]
-Description=Run forge-linkedin once per day
-
-[Timer]
-OnCalendar=*-*-* 10:00:00
-RandomizedDelaySec=1800
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-Enable:
-
-```bash
-systemctl --user daemon-reload
-systemctl --user enable --now forge-linkedin.timer
-```
-
-Check:
-
-```bash
-systemctl --user status forge-linkedin.timer
-```
 
 ### macOS — launchd plist
 
@@ -224,25 +181,55 @@ Load:
 launchctl load ~/Library/LaunchAgents/com.sbknext.forge-linkedin.plist
 ```
 
+### Linux — systemd timer
+
+Create `~/.config/systemd/user/forge-linkedin.service`:
+
+```ini
+[Unit]
+Description=forge-linkedin daily like run
+
+[Service]
+Type=oneshot
+ExecStart=/home/<you>/.local/bin/forge-linkedin run
+```
+
+Create `~/.config/systemd/user/forge-linkedin.timer`:
+
+```ini
+[Unit]
+Description=Run forge-linkedin once per day
+
+[Timer]
+OnCalendar=*-*-* 10:00:00
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now forge-linkedin.timer
+```
+
 ---
 
 ## 8. Uninstall
 
 ```bash
-# Remove binary (if symlinked to ~/.cargo/bin)
-rm -f ~/.cargo/bin/forge-linkedin
-
-# Remove binary (if symlinked to /usr/local/bin)
-sudo rm -f /usr/local/bin/forge-linkedin
+# Remove global link
+npm unlink -g forge-linkedin
+# Or if you used the install script:
+rm -f ~/.local/bin/forge-linkedin
 
 # Remove data (optional — contains your session cookies and like history)
 rm -rf ~/.forge-linkedin
 
-# macOS: unload launchd agent if configured
+# macOS: unload launchd agent
 launchctl unload ~/Library/LaunchAgents/com.sbknext.forge-linkedin.plist
 rm ~/Library/LaunchAgents/com.sbknext.forge-linkedin.plist
-
-# Linux: disable systemd timer if configured
-systemctl --user disable --now forge-linkedin.timer
-rm ~/.config/systemd/user/forge-linkedin.{service,timer}
 ```

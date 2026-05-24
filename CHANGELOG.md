@@ -7,6 +7,24 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.0] — 2026-05-24
+
+### Changed
+
+- Full rewrite from Rust to TypeScript + Playwright. Rust was skeleton-only with stubbed LinkedIn ops; TS version actually works.
+- Real Chrome persistent context (headless: false) for undetectable session reuse.
+- All Phase 1 functionality implemented: init, login, run, dry-run, status, config.
+- Phase 2 stubs preserved: company {search, follow}, network {grow, digest}.
+- SQLite via better-sqlite3 (synchronous, fast, no native build surprises).
+- 60 unit tests (filter, limiter, db, captcha) — all passing.
+- `npm install && npm run build && npx playwright install chromium` replaces Rust toolchain.
+
+### Removed
+
+- All Rust crates and Cargo workspace. Single TypeScript codebase now.
+
+---
+
 ## [Unreleased]
 
 _(nothing yet)_

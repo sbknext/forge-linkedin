@@ -1,5 +1,5 @@
-#!/usr/bin/env sh
-# forge-linkedin install script
+#!/usr/bin/env bash
+# forge-linkedin install script (v0.2.0 — TypeScript + Playwright)
 # Usage: curl -fsSL https://raw.githubusercontent.com/sbknext/forge-linkedin/main/scripts/install.sh | sh
 # Idempotent — safe to re-run.
 
@@ -7,121 +7,70 @@ set -euo pipefail
 
 REPO_URL="https://github.com/sbknext/forge-linkedin"
 INSTALL_DIR="$HOME/.forge-linkedin/repo"
-BIN_DIR="/usr/local/bin"
+BIN_DIR="$HOME/.local/bin"
 BIN_NAME="forge-linkedin"
 
-# ── Colours ────────────────────────────────────────────────────────────────────
-RED='\033[0;31m'
-YEL='\033[1;33m'
-GRN='\033[0;32m'
-ORG='\033[0;33m'
-RST='\033[0m'
+echo "forge-linkedin installer (v0.2.0)"
+echo "=================================="
 
-info()    { printf "${ORG}[forge-linkedin]${RST} %s\n" "$*"; }
-success() { printf "${GRN}[forge-linkedin]${RST} %s\n" "$*"; }
-warn()    { printf "${YEL}[forge-linkedin] WARN:${RST} %s\n" "$*"; }
-die()     { printf "${RED}[forge-linkedin] ERROR:${RST} %s\n" "$*" >&2; exit 1; }
-
-# ── OS detection ───────────────────────────────────────────────────────────────
-detect_os() {
-  case "$(uname -s)" in
-    Darwin) echo "macos" ;;
-    Linux)  echo "linux" ;;
-    *)      die "Unsupported OS: $(uname -s). Only macOS and Linux are supported." ;;
-  esac
-}
-
-OS=$(detect_os)
-info "Detected OS: $OS"
-
-# ── Rust / rustup ──────────────────────────────────────────────────────────────
-install_rust() {
-  if command -v rustc >/dev/null 2>&1; then
-    RUST_VERSION=$(rustc --version | awk '{print $2}')
-    info "Rust already installed: $RUST_VERSION"
-    return 0
-  fi
-
-  warn "Rust not found."
-  printf "${YEL}[forge-linkedin]${RST} Install Rust via rustup? [y/N] "
-  read -r REPLY
-  case "$REPLY" in
-    y|Y|yes|YES)
-      info "Installing Rust via rustup..."
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
-      # shellcheck disable=SC1090
-      . "$HOME/.cargo/env"
-      success "Rust installed."
-      ;;
-    *)
-      die "Rust is required. Install it manually from https://rustup.rs/ and re-run this script."
-      ;;
-  esac
-}
-
-install_rust
-
-# Ensure cargo is on PATH
-if ! command -v cargo >/dev/null 2>&1; then
-  if [ -f "$HOME/.cargo/env" ]; then
-    # shellcheck disable=SC1090
-    . "$HOME/.cargo/env"
-  else
-    die "cargo not found after Rust install. Add ~/.cargo/bin to PATH and re-run."
-  fi
+# ── Check Node 20+ ─────────────────────────────────────────────────────────────
+if ! command -v node >/dev/null 2>&1; then
+  echo "ERROR: Node.js not found. Install Node 20+ via nvm or brew, then re-run."
+  echo "  macOS:  brew install node"
+  echo "  Linux:  https://nodejs.org/en/download/package-manager/"
+  exit 1
 fi
+
+NODE_MAJOR=$(node --version | sed 's/v//' | cut -d. -f1)
+if [ "$NODE_MAJOR" -lt 20 ]; then
+  echo "ERROR: Node 20+ required (found $(node --version))."
+  exit 1
+fi
+
+echo "Node $(node --version) — OK"
 
 # ── Clone or update repo ───────────────────────────────────────────────────────
 if [ -d "$INSTALL_DIR/.git" ]; then
-  info "Repo already cloned at $INSTALL_DIR — pulling latest..."
-  git -C "$INSTALL_DIR" pull --ff-only
+  echo "Updating existing install at $INSTALL_DIR ..."
+  git -C "$INSTALL_DIR" pull --ff-only --quiet
 else
-  info "Cloning forge-linkedin to $INSTALL_DIR ..."
+  echo "Cloning into $INSTALL_DIR ..."
   mkdir -p "$(dirname "$INSTALL_DIR")"
-  git clone --depth 1 "$REPO_URL" "$INSTALL_DIR"
+  git clone --quiet "$REPO_URL" "$INSTALL_DIR"
 fi
 
-# ── Build ──────────────────────────────────────────────────────────────────────
-info "Building release binary (this may take a minute on first build)..."
-cargo build --release --manifest-path "$INSTALL_DIR/Cargo.toml"
-BUILT_BIN="$INSTALL_DIR/target/release/$BIN_NAME"
+cd "$INSTALL_DIR"
 
-if [ ! -f "$BUILT_BIN" ]; then
-  die "Build succeeded but binary not found at $BUILT_BIN — check Cargo.toml [[bin]] name."
-fi
+# ── Install npm dependencies + build ──────────────────────────────────────────
+echo "Installing npm dependencies..."
+npm install --quiet
 
-success "Build complete."
+echo "Building TypeScript..."
+npm run build
 
-# ── Install binary ─────────────────────────────────────────────────────────────
-if [ -w "$BIN_DIR" ]; then
-  ln -sf "$BUILT_BIN" "$BIN_DIR/$BIN_NAME"
-  FINAL_BIN="$BIN_DIR/$BIN_NAME"
-else
-  # Fall back to ~/.cargo/bin (usually already in PATH from rustup)
-  CARGO_BIN="$HOME/.cargo/bin"
-  mkdir -p "$CARGO_BIN"
-  ln -sf "$BUILT_BIN" "$CARGO_BIN/$BIN_NAME"
-  FINAL_BIN="$CARGO_BIN/$BIN_NAME"
-  warn "$BIN_DIR is not writable. Binary linked to $FINAL_BIN."
-  warn "Make sure ~/.cargo/bin is in your PATH:"
-  warn "  export PATH=\"\$HOME/.cargo/bin:\$PATH\""
-fi
+# ── Install Playwright Chromium ───────────────────────────────────────────────
+echo "Installing Playwright Chromium..."
+npx playwright install chromium
 
-success "Binary installed: $FINAL_BIN"
+# ── Symlink binary ─────────────────────────────────────────────────────────────
+mkdir -p "$BIN_DIR"
+chmod +x "$INSTALL_DIR/dist/cli.js"
+ln -sf "$INSTALL_DIR/dist/cli.js" "$BIN_DIR/$BIN_NAME"
+echo "Binary linked: $BIN_DIR/$BIN_NAME"
 
-# ── Init ───────────────────────────────────────────────────────────────────────
-info "Running forge-linkedin init..."
-"$FINAL_BIN" init
+# ── Scaffold ~/.forge-linkedin/ ────────────────────────────────────────────────
+node "$INSTALL_DIR/dist/cli.js" init
 
 # ── Done ───────────────────────────────────────────────────────────────────────
-printf "\n"
-success "forge-linkedin is ready."
-printf "\n"
-printf "${ORG}Next steps:${RST}\n"
-printf "  1. Edit secrets:   nano ~/.forge-linkedin/.env\n"
-printf "  2. Edit config:    nano ~/.forge-linkedin/config.json\n"
-printf "  3. Login once:     forge-linkedin login\n"
-printf "  4. Preview:        forge-linkedin dry-run\n"
-printf "  5. Run:            forge-linkedin run\n"
-printf "\n"
-printf "${ORG}Docs:${RST} https://github.com/sbknext/forge-linkedin\n"
+echo ""
+echo "forge-linkedin is ready."
+echo ""
+echo "Make sure ~/.local/bin is on your PATH:"
+echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+echo ""
+echo "Next:"
+echo "  forge-linkedin login"
+echo "  forge-linkedin dry-run"
+echo "  forge-linkedin run"
+echo ""
+echo "Docs: https://github.com/sbknext/forge-linkedin"

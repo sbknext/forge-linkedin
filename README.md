@@ -4,9 +4,7 @@
 > 30 likes/day max · real-browser session · zero passwords in code.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-e85d04)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.75%2B-e85d04?logo=rust)](https://www.rust-lang.org/)
-
-Not on crates.io. Build from source — it's one command after the clone.
+[![Node](https://img.shields.io/badge/node-20%2B-e85d04?logo=node.js)](https://nodejs.org/)
 
 ---
 
@@ -15,24 +13,34 @@ Not on crates.io. Build from source — it's one command after the clone.
 ```bash
 git clone https://github.com/sbknext/forge-linkedin
 cd forge-linkedin
-cargo build --release
-./target/release/forge-linkedin init       # scaffolds ~/.forge-linkedin/
-./target/release/forge-linkedin login      # log in via Chromium (one time)
-./target/release/forge-linkedin dry-run    # preview candidate posts — no clicks
-./target/release/forge-linkedin run        # like up to 30/day
+npm install
+npm run build
+node dist/cli.js init       # scaffolds ~/.forge-linkedin/
+node dist/cli.js login      # opens Chromium, log in manually (one time)
+node dist/cli.js dry-run    # preview candidate posts — no clicks
+node dist/cli.js run        # like up to 30/day
+```
+
+Or install globally:
+
+```bash
+npm link    # makes `forge-linkedin` available in PATH
+forge-linkedin init
+forge-linkedin login
+forge-linkedin run
 ```
 
 ---
 
 ## What is this
 
-`forge-linkedin` is a Rust CLI that automates LinkedIn engagement at human-realistic pace:
+`forge-linkedin` is a TypeScript CLI that automates LinkedIn engagement at human-realistic pace:
 
 1. **Tag-search** — discovers posts by hashtags you configure
-2. **Quality filter** — skips low-engagement posts and blocked keywords
-3. **Like** — clicks Like through your own real Chrome session (no headless browser, no fake user agent)
+2. **Quality filter** — skips low-engagement posts, blocked keywords, and posts you already liked
+3. **Like** — clicks Like through your own real Chrome session (visible browser, no headless flags, no fake user agent)
 
-No LinkedIn API. No password stored. Cookies live in your home directory, same as if you opened Chrome manually.
+No LinkedIn API. No password stored anywhere in the repo. Cookies live in your home directory, same as if you opened Chrome manually.
 
 Built as part of [Forge](https://forge.sbknext.com) — the solo-dev OSS thesis.
 
@@ -40,15 +48,15 @@ Built as part of [Forge](https://forge.sbknext.com) — the solo-dev OSS thesis.
 
 ## Why "safe pace"
 
-LinkedIn ToS prohibits automation. This tool runs *through your own browser* (no headless flags, no fake user agent), at human-realistic pace:
+LinkedIn ToS prohibits automation. This tool runs *through your own browser* (visible, real Chromium, not headless), at human-realistic pace:
 
 - **30 likes/day max** (hard cap — not configurable beyond this ceiling)
 - **90–300 sec between actions** (randomised delay, configurable)
-- **Active hours only** (default 09:00–21:00 IST — likes are queued outside that window)
+- **Active hours only** (default 09:00–21:00 IST — stops outside that window)
 - **Captcha canary** — stops the session instantly if LinkedIn shows a challenge page
-- **No bulk follow / no mass DM / no auto-comment** in v0.1
+- **No bulk follow / no mass DM / no auto-comment** in v0.2
 
-You are responsible for your own LinkedIn account. These defaults are deliberately conservative; tighten them further if you want lower risk. Run `forge-linkedin status` to see today's count before deciding whether to run again.
+You are responsible for your own LinkedIn account. These defaults are deliberately conservative.
 
 ---
 
@@ -58,7 +66,7 @@ You are responsible for your own LinkedIn account. These defaults are deliberate
 curl -fsSL https://raw.githubusercontent.com/sbknext/forge-linkedin/main/scripts/install.sh | sh
 ```
 
-The script clones this repo to `~/.forge-linkedin/repo/`, builds the release binary, symlinks it into your PATH, and runs `forge-linkedin init`. Safe to re-run — idempotent.
+The script clones this repo, runs `npm install && npm run build`, installs Playwright Chromium, and symlinks the binary. Safe to re-run — idempotent.
 
 See [INSTALL.md](INSTALL.md) for prerequisites, manual build instructions, cron/launchd scheduling, and uninstall.
 
@@ -71,12 +79,10 @@ See [INSTALL.md](INSTALL.md) for prerequisites, manual build instructions, cron/
 forge-linkedin init
 
 # 2. Edit secrets + tunables
-#    secrets  → ~/.forge-linkedin/.env       (mode 600, never committed)
-#    tunables → ~/.forge-linkedin/config.json
-nano ~/.forge-linkedin/.env
-nano ~/.forge-linkedin/config.json
+nano ~/.forge-linkedin/.env          # Telegram token (optional)
+nano ~/.forge-linkedin/config.json   # hashtags, cap, delays
 
-# 3. Authenticate — opens Chrome, you log in manually (one-time)
+# 3. Authenticate — opens Chromium, log in manually (one-time)
 forge-linkedin login
 
 # 4. Preview candidates without liking anything
@@ -96,13 +102,11 @@ forge-linkedin status
 | Command | What it does |
 |---|---|
 | `init` | Scaffolds `~/.forge-linkedin/` with default config and empty `.env` |
-| `login` | Opens your Chromium/Chrome profile, waits for manual LinkedIn login, persists cookies |
+| `login` | Opens Chromium profile, waits for LinkedIn login, persists session |
 | `run` | Discover → filter → like (one session, respects daily cap) |
-| `dry-run` | Same discovery + filtering as `run`, prints candidates to stdout, no clicks |
+| `dry-run` | Same discovery + filtering as `run`, prints candidates, no clicks |
 | `status` | Today's like count, recent 10 liked posts, last login timestamp |
-| `config` | Pretty-prints current `~/.forge-linkedin/config.json` with field descriptions |
-
-All commands respect `--config <path>` to override the default config location.
+| `config` | Pretty-prints current `~/.forge-linkedin/config.json` |
 
 ---
 
@@ -116,11 +120,11 @@ Defaults live in `~/.forge-linkedin/config.json`. See [`config.example.json`](co
 | `daily_cap` | `30` | Maximum likes per calendar day. Hard ceiling. |
 | `min_delay_sec` | `90` | Minimum wait between actions (seconds). |
 | `max_delay_sec` | `300` | Maximum wait between actions (seconds). |
-| `active_hours` | `[9, 21]` | Clock-hour window `[start, end]` (24h). Outside = queue only. |
+| `active_hours` | `[9, 21]` | Clock-hour window `[start, end]` (24h). |
 | `active_tz` | `"Asia/Kolkata"` | Timezone for `active_hours` evaluation. |
 | `skip_weekends` | `false` | Set `true` to pause on Saturday + Sunday. |
-| `min_engagement` | `10` | Skip posts with fewer than this many reactions + comments combined. |
-| `skip_keywords` | `["hiring", ...]` | Posts whose text matches any keyword (case-insensitive) are skipped. |
+| `min_engagement` | `10` | Skip posts with fewer than this many reactions. |
+| `skip_keywords` | `["hiring", ...]` | Posts whose text matches any keyword are skipped. |
 
 ---
 
@@ -132,25 +136,9 @@ Defaults live in `~/.forge-linkedin/config.json`. See [`config.example.json`](co
 | `~/.forge-linkedin/config.json` | Runtime tunables (hashtags, cap, delays, hours). |
 | `~/.forge-linkedin/data.db` | SQLite — liked post URNs, daily counts, run log. |
 | `~/.forge-linkedin/chrome-profile/` | Persistent Chromium profile — session cookies live here. |
-| `~/.forge-linkedin/logs/` | Rotated run logs (`forge-YYYYMMDD.log`). |
+| `~/.forge-linkedin/logs/` | Rotated run logs. |
 
 Nothing sensitive ever lives in the repo. `.env`, `*.db`, `logs/`, and `chrome-profile/` are all in `.gitignore`.
-
----
-
-## Daily cap math
-
-30 likes/day sits well below the threshold where LinkedIn's anomaly detection historically triggers on real accounts:
-
-| Actor | Typical daily likes |
-|---|---|
-| Active human user (LinkedIn's own research) | 5–15 |
-| `forge-linkedin` default cap | 30 |
-| Cheap like-farm bots before account action | 200–500+ |
-
-With 90–300 s random delays, 30 likes takes between 45 min and 2.5 hours — fully within an active working session. The captcha canary halts immediately on any challenge, so you are never silently burning likes against a broken session.
-
-If you want to be even more conservative: set `daily_cap` to `15` and raise `min_delay_sec` to `120`. There is no way to set `daily_cap` above 30 — the ceiling is enforced in code, not just config.
 
 ---
 

@@ -1,8 +1,7 @@
-# Rust build artifacts
-/target/
-**/*.rs.bk
-
-# Cargo.lock is kept — binary crate, reproducible builds. Do NOT add Cargo.lock here.
+# Node / TypeScript build
+node_modules/
+dist/
+*.tsbuildinfo
 
 # Secrets — never commit
 .env
