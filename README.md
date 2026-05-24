@@ -3,9 +3,24 @@
 > Safe-pace LinkedIn engagement for solo devs.
 > 30 likes/day max · real-browser session · zero passwords in code.
 
-[![Crates.io](https://img.shields.io/crates/v/forge-linkedin?color=e85d04)](https://crates.io/crates/forge-linkedin)
 [![License: MIT](https://img.shields.io/badge/license-MIT-e85d04)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-e85d04?logo=rust)](https://www.rust-lang.org/)
+
+Not on crates.io. Build from source — it's one command after the clone.
+
+---
+
+## Try it now
+
+```bash
+git clone https://github.com/sbknext/forge-linkedin
+cd forge-linkedin
+cargo build --release
+./target/release/forge-linkedin init       # scaffolds ~/.forge-linkedin/
+./target/release/forge-linkedin login      # log in via Chromium (one time)
+./target/release/forge-linkedin dry-run    # preview candidate posts — no clicks
+./target/release/forge-linkedin run        # like up to 30/day
+```
 
 ---
 
@@ -37,13 +52,15 @@ You are responsible for your own LinkedIn account. These defaults are deliberate
 
 ---
 
-## Quick install
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sbknext/forge-linkedin/main/scripts/install.sh | sh
 ```
 
-See [INSTALL.md](INSTALL.md) for prerequisite details, cargo-install and build-from-source options, cron/launchd scheduling, and the uninstall procedure.
+The script clones this repo to `~/.forge-linkedin/repo/`, builds the release binary, symlinks it into your PATH, and runs `forge-linkedin init`. Safe to re-run — idempotent.
+
+See [INSTALL.md](INSTALL.md) for prerequisites, manual build instructions, cron/launchd scheduling, and uninstall.
 
 ---
 
@@ -139,9 +156,12 @@ If you want to be even more conservative: set `daily_cap` to `15` and raise `min
 
 ## Roadmap
 
-- [x] Phase 1 — Tag-search + safe-pace likes (v0.1)
-- [ ] Phase 2 — Job search + tailored auto-apply
-- [ ] Phase 3 — Comment drafts via Forge Brain MCP (manual confirm before send)
+- [x] Phase 1 — Tag-search + safe-pace likes (max 30/day)
+- [ ] Phase 2 — Company tracking + network growth
+  - [ ] Company search & follow
+  - [ ] Network grow (find + connect with 2nd-degree matches, 5/day max)
+  - [ ] Network digest (signal-ranked feed)
+- [ ] Phase 3 — Comment drafts via Forge Brain MCP (manual confirm)
 
 ---
 

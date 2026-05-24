@@ -13,6 +13,16 @@ _(nothing yet)_
 
 ---
 
+## [0.1.1] — 2026-05-24
+
+### Changed
+
+- Renamed `jobs-ops` crate to `network-ops`; pivoted Phase 2 to company tracking + network growth (was: job search + auto-apply)
+- README now shows build-from-source as the primary install path; not publishing to crates.io for v0.1.x
+- CLI `jobs` subcommand replaced with `company` and `network` subcommands (Phase 2 stubs)
+
+---
+
 ## [0.1.0] — 2026-05-24
 
 ### Added

@@ -1,5 +1,7 @@
 # forge-linkedin — Install Guide
 
+Not published to crates.io. Build from source — it's one command after the clone.
+
 ---
 
 ## 1. Prerequisites
@@ -37,7 +39,7 @@ The script:
 - Installs Rust via `rustup` if not found (prompts before doing so)
 - Clones the repo to `~/.forge-linkedin/repo/` (or pulls latest if already cloned)
 - Builds the release binary
-- Symlinks the binary to `/usr/local/bin/forge-linkedin`
+- Symlinks the binary to `~/.cargo/bin/forge-linkedin` (falls back to `/usr/local/bin/` if writable)
 - Runs `forge-linkedin init` to scaffold `~/.forge-linkedin/`
 - Prints next steps
 
@@ -45,27 +47,7 @@ Safe to re-run — the script is idempotent.
 
 ---
 
-## 3. Option B — cargo install (once published to crates.io)
-
-```bash
-cargo install forge-linkedin
-```
-
-This puts the binary at `~/.cargo/bin/forge-linkedin`. Make sure `~/.cargo/bin` is in your `PATH`:
-
-```bash
-export PATH="$HOME/.cargo/bin:$PATH"   # add to ~/.bashrc or ~/.zshrc
-```
-
-Then scaffold:
-
-```bash
-forge-linkedin init
-```
-
----
-
-## 4. Option C — Build from source
+## 3. Option B — Build from source manually
 
 ```bash
 git clone https://github.com/sbknext/forge-linkedin
@@ -73,16 +55,22 @@ cd forge-linkedin
 cargo build --release
 ```
 
-The binary lands at `./target/release/forge-linkedin`. Either run it directly or copy it to a directory in your `PATH`:
+The binary lands at `./target/release/forge-linkedin`. Either run it directly or symlink it into your PATH:
 
 ```bash
-cp target/release/forge-linkedin /usr/local/bin/
+ln -sf "$PWD/target/release/forge-linkedin" "$HOME/.cargo/bin/forge-linkedin"
 forge-linkedin init
+```
+
+Make sure `~/.cargo/bin` is in your `PATH`:
+
+```bash
+export PATH="$HOME/.cargo/bin:$PATH"   # add to ~/.bashrc or ~/.zshrc
 ```
 
 ---
 
-## 5. Configure
+## 4. Configure
 
 After `init`, two files are created:
 
@@ -96,7 +84,7 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 ```
 
-- `LINKEDIN_USERNAME` / `LINKEDIN_PASSWORD` — only used by the optional unattended login flow (see step 6). Leave blank if you prefer the manual browser flow.
+- `LINKEDIN_USERNAME` / `LINKEDIN_PASSWORD` — only used by the optional unattended login flow (see step 5). Leave blank if you prefer the manual browser flow.
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — optional. Fill these if you want captcha alerts and daily digests via Telegram.
 - File is created with mode `0600`. Never commit it.
 
@@ -120,7 +108,7 @@ See [`config.example.json`](config.example.json) for full field descriptions, or
 
 ---
 
-## 6. First login
+## 5. First login
 
 ### Manual flow (recommended)
 
@@ -136,7 +124,7 @@ If `LINKEDIN_USERNAME` and `LINKEDIN_PASSWORD` are set in `~/.forge-linkedin/.en
 
 ---
 
-## 7. Verify
+## 6. Verify
 
 ```bash
 forge-linkedin status
@@ -145,7 +133,7 @@ forge-linkedin status
 Expected output on a fresh install (no runs yet):
 
 ```
-forge-linkedin v0.1.0
+forge-linkedin v0.1.1
 ────────────────────
 Today's likes : 0 / 30
 Last login    : <timestamp>
@@ -155,7 +143,7 @@ Recent likes  : (none)
 
 ---
 
-## 8. Schedule recurring runs
+## 7. Schedule recurring runs
 
 ### Linux — systemd timer
 
@@ -238,19 +226,17 @@ launchctl load ~/Library/LaunchAgents/com.sbknext.forge-linkedin.plist
 
 ---
 
-## 9. Uninstall
+## 8. Uninstall
 
 ```bash
-# Remove binary
+# Remove binary (if symlinked to ~/.cargo/bin)
+rm -f ~/.cargo/bin/forge-linkedin
+
+# Remove binary (if symlinked to /usr/local/bin)
 sudo rm -f /usr/local/bin/forge-linkedin
-# Or, if installed via cargo:
-cargo uninstall forge-linkedin
 
 # Remove data (optional — contains your session cookies and like history)
 rm -rf ~/.forge-linkedin
-
-# Remove the cloned repo (Option A only)
-rm -rf ~/.forge-linkedin/repo
 
 # macOS: unload launchd agent if configured
 launchctl unload ~/Library/LaunchAgents/com.sbknext.forge-linkedin.plist

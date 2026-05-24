@@ -37,18 +37,36 @@ fn test_status_missing_db() {
 }
 
 #[test]
-fn test_jobs_search_stub() {
+fn test_company_search_stub() {
     cmd()
-        .args(["jobs", "search"])
+        .args(["company", "search", "openai"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Phase 2"));
 }
 
 #[test]
-fn test_jobs_apply_stub() {
+fn test_company_follow_stub() {
     cmd()
-        .args(["jobs", "apply"])
+        .args(["company", "follow", "openai"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Phase 2"));
+}
+
+#[test]
+fn test_network_grow_stub() {
+    cmd()
+        .args(["network", "grow"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Phase 2"));
+}
+
+#[test]
+fn test_network_digest_stub() {
+    cmd()
+        .args(["network", "digest"])
         .assert()
         .success()
         .stdout(predicate::str::contains("Phase 2"));
@@ -60,7 +78,7 @@ fn test_version_flag() {
         .arg("--version")
         .assert()
         .success()
-        .stdout(predicate::str::contains("0.1.0"));
+        .stdout(predicate::str::contains("0.1.1"));
 }
 
 #[test]

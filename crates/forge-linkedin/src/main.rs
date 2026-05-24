@@ -8,7 +8,7 @@ mod commands;
 #[derive(Parser)]
 #[command(name = "forge-linkedin")]
 #[command(about = "LinkedIn tag-search + auto-like via real Chrome session")]
-#[command(version = "0.1.0")]
+#[command(version = "0.1.1")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -28,19 +28,38 @@ enum Commands {
     DryRun,
     /// Print current config
     Config,
-    /// Phase 2 job commands (not yet implemented)
-    Jobs {
+    /// Phase 2 company tracking commands (coming soon)
+    Company {
         #[command(subcommand)]
-        action: JobCommands,
+        action: CompanyCommands,
+    },
+    /// Phase 2 network growth commands (coming soon)
+    Network {
+        #[command(subcommand)]
+        action: NetworkCommands,
     },
 }
 
 #[derive(Subcommand)]
-enum JobCommands {
-    /// Search for jobs (Phase 2)
-    Search,
-    /// Apply to jobs (Phase 2)
-    Apply,
+enum CompanyCommands {
+    /// Search for companies by keyword (Phase 2)
+    Search {
+        /// Keyword to search for
+        keyword: Option<String>,
+    },
+    /// Follow a company page by name or LinkedIn URL (Phase 2)
+    Follow {
+        /// Company name or LinkedIn URL
+        target: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+enum NetworkCommands {
+    /// Find 2nd-degree connections matching your hashtag profile; send up to 5 notes/day (Phase 2)
+    Grow,
+    /// Daily digest of new posts from your network, ranked by signal (Phase 2)
+    Digest,
 }
 
 fn forge_dir() -> Result<PathBuf> {
@@ -74,9 +93,23 @@ async fn main() -> Result<()> {
         Commands::DryRun => commands::run::run(&forge_dir, true).await,
         Commands::Status => commands::status::run(&forge_dir).await,
         Commands::Config => commands::config::run(&forge_dir).await,
-        Commands::Jobs { action } => match action {
-            JobCommands::Search | JobCommands::Apply => {
-                println!("Coming soon (Phase 2). Track: https://github.com/sbknext/forge-linkedin/issues/1");
+        Commands::Company { action } => match action {
+            CompanyCommands::Search { .. } | CompanyCommands::Follow { .. } => {
+                println!(
+                    "Coming in Phase 2 — track: https://github.com/sbknext/forge-linkedin/issues/2"
+                );
+                Ok(())
+            }
+        },
+        Commands::Network { action } => match action {
+            NetworkCommands::Grow => {
+                println!("Find 2nd-degree connections matching your hashtag profile, send 5 thoughtful connection notes/day. Coming Phase 2.");
+                println!("Track: https://github.com/sbknext/forge-linkedin/issues/2");
+                Ok(())
+            }
+            NetworkCommands::Digest => {
+                println!("Daily digest of new posts from your network, ranked by signal. Coming Phase 2.");
+                println!("Track: https://github.com/sbknext/forge-linkedin/issues/2");
                 Ok(())
             }
         },

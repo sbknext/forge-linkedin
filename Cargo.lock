@@ -541,8 +541,8 @@ dependencies = [
  "directories",
  "dotenvy",
  "filter",
- "jobs-ops",
  "linkedin-ops",
+ "network-ops",
  "predicates",
  "rate-limit",
  "serde",
@@ -986,13 +986,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
-name = "jobs-ops"
-version = "0.1.0"
-dependencies = [
- "anyhow",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1124,6 +1117,13 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "network-ops"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]
